@@ -10,6 +10,15 @@ export const searchMusic = async (query) => {
     );
     const data = await response.json();
 
+    if (data.error) {
+      console.error("Erro da API do YouTube:", data.error.message);
+      // Opcional: mostrar um alerta para o usuário
+      // alert(`Erro: ${data.error.message}`);
+      return [];
+    }
+
+    if (!data.items) return [];
+
     return data.items.map(item => ({
       id: item.id.videoId,
       title: item.snippet.title,
@@ -17,7 +26,7 @@ export const searchMusic = async (query) => {
       channel: item.snippet.channelTitle
     }));
   } catch (error) {
-    console.error("Erro ao buscar no YouTube:", error);
+    console.error("Erro na requisição:", error);
     return [];
   }
 };

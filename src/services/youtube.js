@@ -30,3 +30,26 @@ export const searchMusic = async (query) => {
     return [];
   }
 };
+
+export const getRelatedVideos = async (videoTitle) => {
+  try {
+    const response = await fetch(
+      `${BASE_URL}/search?part=snippet&maxResults=10&q=${encodeURIComponent(
+        videoTitle
+      )}&type=video&videoCategoryId=10&key=${API_KEY}`
+    );
+    const data = await response.json();
+
+    if (data.error || !data.items) return [];
+
+    return data.items.map(item => ({
+      id: item.id.videoId,
+      title: item.snippet.title,
+      thumbnail: item.snippet.thumbnails.high.url,
+      channel: item.snippet.channelTitle
+    }));
+  } catch (error) {
+    console.error("Erro ao buscar relacionados:", error);
+    return [];
+  }
+};

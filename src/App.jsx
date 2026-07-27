@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Play, Pause, SkipForward, SkipBack, ListMusic, History as HistoryIcon } from 'lucide-react';
-import { searchMusic } from './services/youtube';
+import { Search, Play, Pause, SkipForward, SkipBack, ListMusic, History as HistoryIcon, Sparkles } from 'lucide-react';
+import { searchMusic, getRelatedVideos } from './services/youtube';
 
 function App() {
   const [query, setQuery] = useState('');
   const [videos, setVideos] = useState([]);
+  const [relatedVideos, setRelatedVideos] = useState([]);
   const [currentVideo, setCurrentVideo] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [player, setPlayer] = useState(null);
@@ -13,8 +14,6 @@ function App() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState('Lo-fi');
-
-  const categories = ['Lo-fi', 'Synthwave', 'Jazz', 'Chill', 'Gaming', 'Rock', 'Pop'];
 
   useEffect(() => {
     localStorage.setItem('history', JSON.stringify(history));
@@ -28,6 +27,18 @@ function App() {
     };
     fetchBySelected();
   }, [selectedCategory]);
+
+  // Busca de relacionados
+  useEffect(() => {
+    if (currentVideo) {
+      const fetchRelated = async () => {
+        const results = await getRelatedVideos(currentVideo.title);
+        // Filtra para não mostrar o vídeo que já está tocando
+        setRelatedVideos(results.filter(v => v.id !== currentVideo.id));
+      };
+      fetchRelated();
+    }
+  }, [currentVideo]);
 
   // Atualizador de progresso (Seguro)
   useEffect(() => {
@@ -160,6 +171,8 @@ function App() {
     }
   };
 
+  const categories = ['Lo-fi', 'Synthwave', 'Jazz', 'Chill', 'Gaming', 'Rock', 'Pop'];
+
   return (
     <div className="flex flex-col h-screen bg-[#000000] text-white overflow-hidden font-sans">
       {/* Search Header */}
@@ -260,6 +273,30 @@ function App() {
                   />
                   <p className="text-xs font-bold truncate leading-relaxed">{video.title}</p>
                   <p className="text-[10px] text-zinc-400 truncate">{video.channel}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Suggested Section */}
+        {relatedVideos.length > 0 && (
+          <div className="mt-12 pb-12">
+            <h2 className="text-xl font-bold mb-6 flex items-center gap-3">
+              <Sparkles size={24} className="text-spotify" /> Sugestões para você
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {relatedVideos.map(video => (
+                <div
+                  key={video.id}
+                  className="flex items-center gap-4 bg-[#181818]/50 p-2 rounded-lg hover:bg-[#282828] transition-colors cursor-pointer group"
+                  onClick={() => playVideo(video)}
+                >
+                  <img src={video.thumbnail} alt={video.title} className="w-20 aspect-video object-cover rounded shadow-md" />
+                  <div className="overflow-hidden">
+                    <h4 className="text-sm font-bold truncate group-hover:text-spotify transition-colors">{video.title}</h4>
+                    <p className="text-xs text-zinc-400">{video.channel}</p>
+                  </div>
                 </div>
               ))}
             </div>

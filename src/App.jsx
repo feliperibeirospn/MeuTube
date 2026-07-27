@@ -63,6 +63,30 @@ function App() {
       try {
         player.loadVideoById(video.id);
         setIsPlaying(true);
+
+        // Configura a Media Session (Controles na tela de bloqueio)
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.metadata = new window.MediaMetadata({
+            title: video.title,
+            artist: video.channel,
+            artwork: [
+              { src: video.thumbnail, sizes: '512x512', type: 'image/jpeg' }
+            ]
+          });
+
+          navigator.mediaSession.setActionHandler('play', () => {
+            player.playVideo();
+            setIsPlaying(true);
+          });
+          navigator.mediaSession.setActionHandler('pause', () => {
+            player.pauseVideo();
+            setIsPlaying(false);
+          });
+          navigator.mediaSession.setActionHandler('previoustrack', () => {
+            // Lógica de voltar se necessário
+          });
+          navigator.mediaSession.setActionHandler('nexttrack', handleNext);
+        }
       } catch (err) {
         console.error("Erro ao carregar vídeo:", err);
       }

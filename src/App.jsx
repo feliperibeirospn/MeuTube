@@ -8,6 +8,7 @@ function App() {
   const [currentVideo, setCurrentVideo] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [player, setPlayer] = useState(null);
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('history') || '[]'));
 
   useEffect(() => {
@@ -16,20 +17,37 @@ function App() {
 
   // YouTube IFrame API initialization
   useEffect(() => {
-    window.onYouTubeIframeAPIReady = () => {
-      const newPlayer = new window.YT.Player('youtube-player', {
-        height: '0',
-        width: '0',
-        events: {
-          onStateChange: (event) => {
-            if (event.data === window.YT.PlayerState.PLAYING) setIsPlaying(true);
-            if (event.data === window.YT.PlayerState.PAUSED) setIsPlaying(false);
-            if (event.data === window.YT.PlayerState.ENDED) handleNext();
+    // Função para criar o player
+    const createPlayer = () => {
+      if (window.YT && window.YT.Player) {
+        const newPlayer = new window.YT.Player('youtube-player', {
+          height: '0',
+          width: '0',
+          playerVars: {
+            autoplay: 0,
+            controls: 0,
           },
-        },
-      });
-      setPlayer(newPlayer);
+          events: {
+            onReady: () => setIsPlayerReady(true),
+            onStateChange: (event) => {
+              if (event.data === window.YT.PlayerState.PLAYING) setIsPlaying(true);
+              if (event.data === window.YT.PlayerState.PAUSED) setIsPlaying(false);
+              if (event.data === window.YT.PlayerState.ENDED) handleNext();
+            },
+            onError: (e) => console.error("Erro no Player:", e.data)
+          },
+        });
+        setPlayer(newPlayer);
+      }
     };
+
+    if (!window.YT) {
+      // Se não existe, espera o script carregar (index.html já tem o script)
+      window.onYouTubeIframeAPIReady = createPlayer;
+    } else {
+      // Se já existe (ex: hot reload), cria direto
+      createPlayer();
+    }
   }, []);
 
   const handleSearch = async (e) => {
@@ -41,9 +59,13 @@ function App() {
 
   const playVideo = (video) => {
     setCurrentVideo(video);
-    if (player) {
-      player.loadVideoById(video.id);
-      setIsPlaying(true);
+    if (player && isPlayerReady) {
+      try {
+        player.loadVideoById(video.id);
+        setIsPlaying(true);
+      } catch (err) {
+        console.error("Erro ao carregar vídeo:", err);
+      }
     }
 
     // Add to history

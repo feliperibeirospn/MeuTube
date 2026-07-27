@@ -1,0 +1,1 @@
+{"name":"MeuTube Music","short_name":"MeuTube","start_url":"/MeuTube/","display":"standalone","background_color":"#ffffff","lang":"en","scope":"/MeuTube/","description":"Seu player de música integrado ao YouTube","theme_color":"#000000","icons":[{"src":"pwa-192x192.png","sizes":"192x192","type":"image/png"},{"src":"pwa-512x512.png","sizes":"512x512","type":"image/png"}]}

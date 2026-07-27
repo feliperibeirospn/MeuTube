@@ -10,10 +10,40 @@ function App() {
   const [player, setPlayer] = useState(null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('history') || '[]'));
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState('Lo-fi');
+
+  const categories = ['Lo-fi', 'Synthwave', 'Jazz', 'Chill', 'Gaming', 'Rock', 'Pop'];
 
   useEffect(() => {
     localStorage.setItem('history', JSON.stringify(history));
   }, [history]);
+
+  // Busca inicial e por categoria
+  useEffect(() => {
+    const fetchBySelected = async () => {
+      const results = await searchMusic(selectedCategory);
+      setVideos(results);
+    };
+    fetchBySelected();
+  }, [selectedCategory]);
+
+  // Atualizador de progresso (Seguro)
+  useEffect(() => {
+    let interval;
+    if (isPlaying && player && isPlayerReady) {
+      interval = setInterval(() => {
+        try {
+          if (player.getCurrentTime) {
+            setCurrentTime(player.getCurrentTime());
+            setDuration(player.getDuration());
+          }
+        } catch (e) {}
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying, player, isPlayerReady]);
 
   // YouTube IFrame API initialization
   useEffect(() => {
@@ -55,6 +85,22 @@ function App() {
     if (!query) return;
     const results = await searchMusic(query);
     setVideos(results);
+    setSelectedCategory(''); // Limpa categoria se pesquisar manual
+  };
+
+  const formatTime = (seconds) => {
+    if (!seconds) return "0:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleProgressChange = (e) => {
+    const newTime = parseFloat(e.target.value);
+    setCurrentTime(newTime);
+    if (player && isPlayerReady) {
+      player.seekTo(newTime);
+    }
   };
 
   const playVideo = (video) => {
@@ -118,21 +164,38 @@ function App() {
     <div className="flex flex-col h-screen bg-[#000000] text-white overflow-hidden font-sans">
       {/* Search Header */}
       <header className="p-4 bg-gradient-to-b from-zinc-900 to-black sticky top-0 z-10">
-        <div className="flex items-center gap-4 max-w-4xl mx-auto">
-          <div className="relative flex-1">
-            <form onSubmit={handleSearch}>
-              <input
-                type="text"
-                className="w-full bg-[#242424] hover:bg-[#2a2a2a] transition-colors py-3 px-12 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-white/20 placeholder-zinc-500"
-                placeholder="O que você quer ouvir?"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-              <Search className="absolute left-4 top-3 text-zinc-400" size={20} />
-            </form>
+        <div className="flex flex-col gap-4 max-w-4xl mx-auto">
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1">
+              <form onSubmit={handleSearch}>
+                <input
+                  type="text"
+                  className="w-full bg-[#242424] hover:bg-[#2a2a2a] transition-colors py-3 px-12 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-white/20 placeholder-zinc-500"
+                  placeholder="O que você quer ouvir?"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+                <Search className="absolute left-4 top-3 text-zinc-400" size={20} />
+              </form>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-spotify flex items-center justify-center text-black font-bold text-xs shadow-lg">
+              FT
+            </div>
           </div>
-          <div className="w-10 h-10 rounded-full bg-spotify flex items-center justify-center text-black font-bold text-xs shadow-lg">
-            FT
+
+          {/* Categories */}
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${
+                  selectedCategory === cat ? 'bg-white text-black' : 'bg-[#242424] text-white hover:bg-[#2a2a2a]'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
           </div>
         </div>
       </header>
@@ -234,13 +297,18 @@ function App() {
               <button onClick={handleNext} className="text-zinc-400 hover:text-white transition-colors"><SkipForward size={20} fill="currentColor" /></button>
             </div>
 
-            {/* Progress Bar Placeholder */}
-            <div className="hidden md:flex items-center gap-2 w-full max-w-md">
-              <span className="text-[10px] text-zinc-500">0:00</span>
-              <div className="h-1 flex-1 bg-zinc-800 rounded-full overflow-hidden">
-                <div className="h-full bg-white w-1/3 rounded-full"></div>
-              </div>
-              <span className="text-[10px] text-zinc-500">3:45</span>
+            {/* Progress Bar */}
+            <div className="hidden md:flex items-center gap-3 w-full max-w-md">
+              <span className="text-[10px] text-zinc-500 w-10 text-right">{formatTime(currentTime)}</span>
+              <input
+                type="range"
+                min="0"
+                max={duration || 0}
+                value={currentTime || 0}
+                onChange={handleProgressChange}
+                className="flex-1 h-1 bg-zinc-800 rounded-full appearance-none cursor-pointer accent-white hover:accent-spotify transition-all"
+              />
+              <span className="text-[10px] text-zinc-500 w-10">{formatTime(duration)}</span>
             </div>
           </div>
 
